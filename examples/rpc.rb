@@ -19,12 +19,11 @@ seen_entries = []
 while instance.running?
     print '.'
 
-    progress = instance.scan.progress(
-      with:    [:errors],
-      without: { seen_entries: seen_entries }
-    )
-    progress['entries'].keys.each { |k| seen_entries << k }
-
+    # progress = instance.scan.progress(
+    #   with:    [:errors],
+    #   without: { seen_entries: seen_entries }
+    # )
+    # progress['entries'].keys.each { |k| seen_entries << k }
     # pp progress
 
     sleep 1
@@ -34,8 +33,8 @@ entries = instance.generate_report.data
 
 per_action = {}
 entries.each do |entry|
-    per_action[entry[:action]] ||= []
-    per_action[entry[:action]] << entry
+    per_action[entry['action']] ||= []
+    per_action[entry['action']] << entry
 end
 
 pp '-' * 88

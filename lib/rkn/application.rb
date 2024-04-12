@@ -18,7 +18,7 @@ class Application < ::Cuboid::Application
 
     instance_service_for :scan,  RPCProxy
 
-    serialize_with Marshal
+    serialize_with MessagePack
 
     attr_reader :entries
 
