@@ -20,13 +20,13 @@ class Application < ::Cuboid::Application
 
     serialize_with Marshal
 
-    attr_reader :progress
+    attr_reader :entries
 
     def initialize(*)
         super
 
-        @api      = SCNR::Application::API.new
-        @progress = {}
+        @api  = SCNR::Application::API.new
+        @entries = {}
 
         setup_hooks
         load_sink_trace_force_check
@@ -34,7 +34,7 @@ class Application < ::Cuboid::Application
 
     def run
         @api.scan.run
-        report @progress
+        report @entries.values.flatten
     end
 
     def validate_options( options )
@@ -59,22 +59,22 @@ class Application < ::Cuboid::Application
 
     def do_abort
         @api.scan.abort!
-        report @api.scan.generate_report
+        report @entries.values.flatten
     end
 
     private
 
     def setup_hooks
         SCNR::Engine::Element::Capabilities::WithSinks::Sinks::Tracers::Fuzz.on_sinks do |seed, mutation, resource|
-            @progress[mutation.coverage_and_trace_hash] = prepare_entry( seed, mutation, resource )
+            @entries[mutation.coverage_and_trace_hash] = prepare_entry( seed, mutation, resource )
         end
 
         SCNR::Engine::Element::Capabilities::WithSinks::Sinks::Tracers::Differential.on_sinks do |seed, mutation|
-            @progress[mutation.coverage_and_trace_hash] = prepare_entry( seed, mutation )
+            @entries[mutation.coverage_and_trace_hash] = prepare_entry( seed, mutation )
         end
 
         SCNR::Engine::Element::DOM::Capabilities::WithSinks::Sinks::Tracers::Fuzz.on_sinks do |seed, mutation, resource|
-            @progress[mutation.coverage_and_trace_hash] = prepare_entry( seed, mutation, resource )
+            @entries[mutation.coverage_and_trace_hash] = prepare_entry( seed, mutation, resource )
         end
     end
     
@@ -118,12 +118,7 @@ class Application < ::Cuboid::Application
 
         case resource
             when SCNR::Engine::Page
-                entry[:page]      = resource.to_h
-                entry[:page].delete :cache
-                entry[:page].delete :metadata
-                entry[:page].delete :element_audit_whitelist
-                entry[:page].delete :has_javascript
-
+                entry[:page]      = prepare_page( resource )
                 entry[:platforms] = resource.platforms.to_a
 
             when SCNR::Engine::HTTP::Response
@@ -140,7 +135,18 @@ class Application < ::Cuboid::Application
     end
 
     def prepare_mutation( mutation )
-        mutation.dup.tap { |m| m.auditor = nil }.to_h
+        mutation.dup.tap { |m| m.auditor = nil }.to_h.merge( page: prepare_page( mutation.page ) )
+    end
+
+    def prepare_page( page )
+        h = page.to_h
+
+        [:links, :forms, :cookies, :headers, :xmls, :jsons, :link_templates, :ui_inputs, :ui_forms, :cookie_jar, :cache,
+         :document, :parser, :paths, :metadata, :has_javascript, :element_audit_whitelist].each do |k|
+            h.delete k
+        end
+
+        h
     end
 
     def prepare_sinks( mutation )

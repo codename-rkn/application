@@ -15,20 +15,29 @@ instance.run(
     }
 )
 
-sinks_seen = []
+seen_entries = []
 while instance.running?
-    pp '-' * 88
+    print '.'
 
     progress = instance.scan.progress(
       with:    [:errors],
-      without: { sinks: sinks_seen }
+      without: { seen_entries: seen_entries }
     )
-    progress['sinks'].keys.each { |k| sinks_seen << k }
+    progress['entries'].keys.each { |k| seen_entries << k }
 
-    pp progress
+    # pp progress
 
     sleep 1
 end
-puts
-pp report = instance.generate_report.data
-pp report.finish_datetime - report.start_datetime
+
+entries = instance.generate_report.data
+
+per_action = {}
+entries.each do |entry|
+    per_action[entry[:action]] ||= []
+    per_action[entry[:action]] << entry
+end
+
+pp '-' * 88
+
+pp per_action

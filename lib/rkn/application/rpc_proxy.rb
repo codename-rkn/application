@@ -1,18 +1,13 @@
 class RPCProxy
 
     def progress( options = {}, &block )
-        without = options['without'] || {}
-        without_sinks = Set.new( without['sinks'] || [] )
+        options = options.my_symbolize_keys
+
+        without = options[:without] || {}
+        without_entries = Set.new( without[:entries] || [] )
 
         block.call progress_handler( options ).
-          merge( sinks: RKN::Application.progress.reject { |k, _| without_sinks.include? k } )
-    rescue => e
-        pp e
-        pp e.backtrace
-    end
-
-    def generate_report_as_hash
-        scan.generate_report.to_h
+          merge( entries: RKN::Application.entries.reject { |k, _| without_entries.include? k } )
     end
 
     # @param    [Integer]   from_index
@@ -21,22 +16,6 @@ class RPCProxy
     # @return   [Hash<String=>Integer>]
     def sitemap( from_index = 0 )
         scan.sitemap from_index
-    end
-
-    # @return  [Array<Hash>]
-    #   Issues as {Engine::Issue#to_rpc_data RPC data}.
-    #
-    # @private
-    def issues( without = [] )
-        scan.issues( without ).map(&:to_rpc_data)
-    end
-
-    # @return   [Array<Hash>]
-    #   {#issues} as an array of Hashes.
-    #
-    # @see #issues
-    def issues_as_hash( without = [] )
-        scan.issues( without ).map(&:to_h)
     end
 
     # @param    [Integer]   index
@@ -50,13 +29,10 @@ class RPCProxy
     private
 
     def progress_handler( options = {} )
-        options = options.my_symbolize_keys
-
         with    = Cuboid::RPC::Server::Instance.parse_progress_opts( options, :with )
         without = Cuboid::RPC::Server::Instance.parse_progress_opts( options, :without )
 
         options = {
-          as_hash:    options[:as_hash],
           statistics: !without.include?( :statistics )
         }
 

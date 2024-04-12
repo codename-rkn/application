@@ -14,9 +14,17 @@ Thread.new do
     application.run
 end
 
-while application.status != :done
-    pp '-' * 88
-    pp application.progress.dup
-
+while !application.done?
+    print '.'
     sleep 1
 end
+
+per_action = {}
+application.generate_report.data.each do |entry|
+    per_action[entry[:action]] ||= []
+    per_action[entry[:action]] << entry
+end
+
+pp '-' * 88
+
+pp per_action
