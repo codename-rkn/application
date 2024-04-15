@@ -67,27 +67,27 @@ class Application < ::Cuboid::Application
     def setup_hooks
         seen = Set.new
         SCNR::Engine::Element::Capabilities::WithSinks::Sinks::Tracers::Fuzz.on_sink do |sink, seed, mutation, resource|
-            id = [sink, mutation.coverage_hash].hash
+            id = get_entry_id( sink, mutation )
             next if seen.include? id
             seen << id
 
-            @entries[mutation.coverage_and_trace_hash] = prepare_entry( sink, seed, mutation, resource )
+            @entries[id] = prepare_entry( sink, seed, mutation, resource )
         end
 
         SCNR::Engine::Element::Capabilities::WithSinks::Sinks::Tracers::Differential.on_sink do |sink, seed, mutation|
-            id = [sink, mutation.coverage_hash].hash
+            id = get_entry_id( sink, mutation )
             next if seen.include? id
             seen << id
 
-            @entries[mutation.coverage_and_trace_hash] = prepare_entry( sink, seed, mutation )
+            @entries[id] = prepare_entry( sink, seed, mutation )
         end
 
         SCNR::Engine::Element::DOM::Capabilities::WithSinks::Sinks::Tracers::Fuzz.on_sink do |sink, seed, mutation, resource|
-            id = [sink, mutation.coverage_hash].hash
+            id = get_entry_id( sink, mutation )
             next if seen.include? id
             seen << id
 
-            @entries[mutation.coverage_and_trace_hash] = prepare_entry( sink, seed, mutation, resource )
+            @entries[id] = prepare_entry( sink, seed, mutation, resource )
         end
     end
     
@@ -165,6 +165,11 @@ class Application < ::Cuboid::Application
         end
 
         h
+    end
+
+    def get_entry_id( sink, mutation )
+        [sink, mutation.class, mutation.affected_input_name, mutation.action, mutation.inputs.keys].
+          join( ':' ).persistent_hash
     end
 
 end
