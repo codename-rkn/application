@@ -65,16 +65,29 @@ class Application < ::Cuboid::Application
     private
 
     def setup_hooks
-        SCNR::Engine::Element::Capabilities::WithSinks::Sinks::Tracers::Fuzz.on_sinks do |seed, mutation, resource|
-            @entries[mutation.coverage_and_trace_hash] = prepare_entry( seed, mutation, resource )
+        seen = Set.new
+        SCNR::Engine::Element::Capabilities::WithSinks::Sinks::Tracers::Fuzz.on_sink do |sink, seed, mutation, resource|
+            id = [sink, mutation.coverage_hash].hash
+            next if seen.include? id
+            seen << id
+
+            @entries[mutation.coverage_and_trace_hash] = prepare_entry( sink, seed, mutation, resource )
         end
 
-        SCNR::Engine::Element::Capabilities::WithSinks::Sinks::Tracers::Differential.on_sinks do |seed, mutation|
-            @entries[mutation.coverage_and_trace_hash] = prepare_entry( seed, mutation )
+        SCNR::Engine::Element::Capabilities::WithSinks::Sinks::Tracers::Differential.on_sink do |sink, seed, mutation|
+            id = [sink, mutation.coverage_hash].hash
+            next if seen.include? id
+            seen << id
+
+            @entries[mutation.coverage_and_trace_hash] = prepare_entry( sink, seed, mutation )
         end
 
-        SCNR::Engine::Element::DOM::Capabilities::WithSinks::Sinks::Tracers::Fuzz.on_sinks do |seed, mutation, resource|
-            @entries[mutation.coverage_and_trace_hash] = prepare_entry( seed, mutation, resource )
+        SCNR::Engine::Element::DOM::Capabilities::WithSinks::Sinks::Tracers::Fuzz.on_sink do |sink, seed, mutation, resource|
+            id = [sink, mutation.coverage_hash].hash
+            next if seen.include? id
+            seen << id
+
+            @entries[mutation.coverage_and_trace_hash] = prepare_entry( sink, seed, mutation, resource )
         end
     end
     
@@ -108,22 +121,27 @@ class Application < ::Cuboid::Application
         SCNR::Engine::Framework.unsafe.checks[check.shortname] = check
     end
 
-    def prepare_entry( seed, mutation, resource = nil )
+    def prepare_entry( sink, seed, mutation, resource = nil )
         entry = {
-          seed:      seed,
-          mutation:  prepare_mutation( mutation ),
-          sinks:     prepare_sinks( mutation ),
-          action:    mutation.action
+          digest:   mutation.coverage_and_trace_hash,
+          sink:     sink,
+          seed:     seed,
+          mutation: prepare_mutation( mutation ),
+          action:   mutation.action,
+          remarks:  []
         }
 
         case resource
             when SCNR::Engine::Page
-                entry[:page]      = prepare_page( resource )
-                entry[:platforms] = resource.platforms.to_a
+                entry[:page]           = prepare_page( resource )
+                entry[:page][:request] = resource.request.to_h
+                entry[:platforms]      = resource.platforms.to_a
 
             when SCNR::Engine::HTTP::Response
-                entry[:response]  = resource.to_h
-                entry[:platforms] = resource.to_page.platforms.to_a
+                page = resource.to_page
+                entry[:page]           = prepare_page( page )
+                entry[:page][:request] = resource.request.to_h
+                entry[:platforms]      = page.platforms.to_a
 
             else
                 entry[:platforms] = SCNR::Engine::Platform::Manager[mutation.action].to_a
@@ -139,7 +157,7 @@ class Application < ::Cuboid::Application
     end
 
     def prepare_page( page )
-        h = page.to_h
+        h = page.prepare_for_report.to_h
 
         [:links, :forms, :cookies, :headers, :xmls, :jsons, :link_templates, :ui_inputs, :ui_forms, :cookie_jar, :cache,
          :document, :parser, :paths, :metadata, :has_javascript, :element_audit_whitelist].each do |k|
@@ -147,14 +165,6 @@ class Application < ::Cuboid::Application
         end
 
         h
-    end
-
-    def prepare_sinks( mutation )
-        sinks = {}
-        mutation.sinks.per_input.each do |input, s|
-            sinks[input] = s.map(&:to_s)
-        end
-        sinks
     end
 
 end
