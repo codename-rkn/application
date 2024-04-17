@@ -14,7 +14,7 @@ if File.exist? '../scnr/engine'
     gem 'scnr-engine', path: '../../scnr/engine'
 end
 
-# Specify your gem's dependencies in application.gemspec
+# Specify your gem's dependencies in rkn-application.gemspec
 gemspec
 
 gem "rake", "~> 13.0"

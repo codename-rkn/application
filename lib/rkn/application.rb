@@ -67,27 +67,27 @@ class Application < ::Cuboid::Application
     def setup_hooks
         seen = Set.new
         SCNR::Engine::Element::Capabilities::WithSinks::Sinks::Tracers::Fuzz.on_sink do |sink, seed, mutation, resource|
-            id = get_entry_id( sink, mutation )
-            next if seen.include? id
-            seen << id
+            digest = get_entry_digest( sink, mutation )
+            next if seen.include? digest
+            seen << digest
 
-            @entries[id] = prepare_entry( sink, seed, mutation, resource )
+            @entries[digest] = prepare_entry( digest, sink, seed, mutation, resource )
         end
 
         SCNR::Engine::Element::Capabilities::WithSinks::Sinks::Tracers::Differential.on_sink do |sink, seed, mutation|
-            id = get_entry_id( sink, mutation )
-            next if seen.include? id
-            seen << id
+            digest = get_entry_digest( sink, mutation )
+            next if seen.include? digest
+            seen << digest
 
-            @entries[id] = prepare_entry( sink, seed, mutation )
+            @entries[digest] = prepare_entry( digest, sink, seed, mutation )
         end
 
         SCNR::Engine::Element::DOM::Capabilities::WithSinks::Sinks::Tracers::Fuzz.on_sink do |sink, seed, mutation, resource|
-            id = get_entry_id( sink, mutation )
-            next if seen.include? id
-            seen << id
+            digest = get_entry_digest( sink, mutation )
+            next if seen.include? digest
+            seen << digest
 
-            @entries[id] = prepare_entry( sink, seed, mutation, resource )
+            @entries[digest] = prepare_entry( digest, sink, seed, mutation, resource )
         end
     end
     
@@ -121,9 +121,9 @@ class Application < ::Cuboid::Application
         SCNR::Engine::Framework.unsafe.checks[check.shortname] = check
     end
 
-    def prepare_entry( sink, seed, mutation, resource = nil )
+    def prepare_entry( digest, sink, seed, mutation, resource = nil )
         entry = {
-          digest:   mutation.coverage_and_trace_hash,
+          digest:   digest,
           sink:     sink,
           seed:     seed,
           mutation: prepare_mutation( mutation ),
@@ -167,8 +167,8 @@ class Application < ::Cuboid::Application
         h
     end
 
-    def get_entry_id( sink, mutation )
-        [sink, mutation.class, mutation.affected_input_name, mutation.action, mutation.inputs.keys].
+    def get_entry_digest( sink, mutation )
+        [sink, mutation.class, mutation.affected_input_name, mutation.action, mutation.inputs.keys.sort].
           join( ':' ).persistent_hash
     end
 
