@@ -2,6 +2,12 @@
 
 source "https://rubygems.org"
 
+if File.exist? '../../ecsypno/license-client'
+    gem 'ecsypno-license-client', path: '../../ecsypno/license-client'
+else
+    gem 'ecsypno-license-client'
+end
+
 if File.exist? '../../scnr/license-client'
     gem 'scnr-license-client', path: '../../scnr/license-client'
 end

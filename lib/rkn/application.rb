@@ -153,7 +153,10 @@ class Application < ::Cuboid::Application
     end
 
     def prepare_mutation( mutation )
-        mutation.dup.tap { |m| m.auditor = nil }.to_h.merge( page: prepare_page( mutation.page ) )
+        mutation.dup.tap { |m| m.auditor = nil }.to_h.merge(
+          page:       prepare_page( mutation.page ),
+          value_type: determine_input_type( mutation.default_inputs[mutation.affected_input_name] ),
+        )
     end
 
     def prepare_page( page )
@@ -165,6 +168,24 @@ class Application < ::Cuboid::Application
         end
 
         h
+    end
+
+    def determine_input_type( value )
+        value = value.to_s.downcase
+        return :null if value.to_s.empty?
+
+        return :base64 if value.end_with? '=='
+        return :url    if value.start_with?( 'http://' ) || value.start_with?( 'https://' )
+
+        case value
+            when /\A\d+\Z/
+                return :integer
+
+            when /\A\d+\.\d+\Z/
+                return :float
+        end
+
+        :string
     end
 
     def get_entry_digest( sink, mutation )
