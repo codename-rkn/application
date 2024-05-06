@@ -21,28 +21,34 @@ class Application < ::Cuboid::Application
     serialize_with MessagePack
 
     attr_reader :entries
+    attr_reader :scnr_api
 
     def initialize(*)
         super
 
-        @api  = SCNR::Application::API.new
-        @entries = {}
+        @scnr_api = SCNR::Application::API.new
+        @entries  = {}
 
         setup_hooks
         load_sink_trace_force_check
     end
 
     def run
-        @api.scan.run
+        @scnr_api.scan.run
         report @entries.values.flatten
     end
 
     def validate_options( options )
         options = options.dup
-        @api.scan.options.set options
+        @scnr_api.scan.options.set options
         true
     rescue SCNR::Engine::Options::Error
         false
+    end
+
+    def generate_report
+        report( @entries.values.flatten ) unless data.report
+        super
     end
 
     def errors
@@ -50,15 +56,15 @@ class Application < ::Cuboid::Application
     end
 
     def do_pause
-        @api.scan.pause!
+        @scnr_api.scan.pause!
     end
 
     def do_resume
-        @api.scan.resume!
+        @scnr_api.scan.resume!
     end
 
     def do_abort
-        @api.scan.abort!
+        @scnr_api.scan.abort!
         report @entries.values.flatten
     end
 
