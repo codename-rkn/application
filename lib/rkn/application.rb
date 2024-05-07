@@ -35,7 +35,7 @@ class Application < ::Cuboid::Application
 
     def run
         @scnr_api.scan.run
-        report @entries.values.flatten
+        report prepare_report
     end
 
     def validate_options( options )
@@ -47,7 +47,7 @@ class Application < ::Cuboid::Application
     end
 
     def generate_report
-        report( @entries.values.flatten ) unless data.report
+        report( prepare_report ) unless data.report
         super
     end
 
@@ -65,10 +65,18 @@ class Application < ::Cuboid::Application
 
     def do_abort
         @scnr_api.scan.abort!
-        report @entries.values.flatten
+        report prepare_report
     end
 
     private
+
+    def prepare_report
+        r = @scnr_api.scan.generate_report.to_h
+        r.delete :issues
+        r.delete :plugins
+        r[:entries] = @entries.values
+        r
+    end
 
     def setup_hooks
         seen = Set.new

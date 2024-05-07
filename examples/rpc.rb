@@ -29,7 +29,7 @@ while instance.running?
     sleep 1
 end
 
-entries = instance.generate_report.data
+entries = instance.generate_report.data['entries']
 
 per_action = {}
 entries.each do |entry|

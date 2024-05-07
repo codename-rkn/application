@@ -8,16 +8,16 @@ else
     gem 'ecsypno-license-client'
 end
 
-if File.exist? '../../scnr/license-client'
-    gem 'scnr-license-client', path: '../../scnr/license-client'
-end
-
 if File.exist? '../../scnr/application'
     gem 'scnr-application', path: '../../scnr/application'
 end
 
 if File.exist? '../scnr/engine'
     gem 'scnr-engine', path: '../../scnr/engine'
+end
+
+if File.exist? '../rkn'
+    gem 'rkn', path: '../rkn'
 end
 
 # Specify your gem's dependencies in rkn-application.gemspec
