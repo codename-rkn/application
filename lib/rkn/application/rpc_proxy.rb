@@ -1,5 +1,9 @@
 class RPCProxy
 
+    def generate_session_snapshot
+        scan.generate_session_snapshot
+    end
+
     def progress( options = {}, &block )
         options = options.my_symbolize_keys
 

@@ -40,6 +40,10 @@ class Application < ::Cuboid::Application
 
     def validate_options( options )
         options = options.dup
+
+        # We could be dealing with a restored session.
+        options ||= {}
+
         @scnr_api.scan.options.set options
         true
     rescue SCNR::Engine::Options::Error
@@ -49,6 +53,11 @@ class Application < ::Cuboid::Application
     def generate_report
         report( prepare_report ) unless data.report
         super
+    end
+
+    # Override Cuboid instead of handling the event.
+    def restore!( ses )
+        @scnr_api.scan.restore! ses
     end
 
     def errors
@@ -66,6 +75,10 @@ class Application < ::Cuboid::Application
     def do_abort
         @scnr_api.scan.abort!
         report prepare_report
+    end
+
+    def session_snapshot_path
+        @scnr_api.scan.generate_session_snapshot
     end
 
     private
